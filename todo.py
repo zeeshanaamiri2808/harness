@@ -5,8 +5,7 @@ class TodoApp:
     def add_item(self, text):
         if not text or not text.strip():
             raise ValueError("Item text cannot be empty")
-        # BUG: .upper() corrupts item text — intentional for demo
-        item = {"id": len(self.items) + 1, "text": text.strip().upper(), "done": False}
+        item = {"id": len(self.items) + 1, "text": text.strip(), "done": False}
         self.items.append(item)
         return item
 
