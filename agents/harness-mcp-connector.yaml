@@ -1,0 +1,20 @@
+# Harness MCP Connector — reference configuration
+# Use this as a guide when filling in the Harness UI form.
+# Do NOT commit real tokens here; use Harness Secrets.
+
+connector:
+  name: Claude MCP Connector
+  identifier: claude_mcp_connector
+  orgIdentifier: <YOUR_ORG_ID>
+  projectIdentifier: <YOUR_PROJECT_ID>
+  type: AIConnector
+
+  spec:
+    provider: Anthropic          # or OpenAI / Google
+    model: claude-sonnet-5       # recommended for autofix tasks
+
+    # Reference Harness Secret — never hardcode the key
+    apiKeyRef: <YOUR_HARNESS_SECRET_ID>
+
+    # Optional: constrain which pipelines can use this connector
+    # scope: project             # project | org | account

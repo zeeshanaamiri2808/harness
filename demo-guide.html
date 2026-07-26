@@ -1,0 +1,1910 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Harness AI Agent Demo — Setup & Run Guide</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:ital,wght@0,400;0,500;1,400&family=Inter:wght@300;400;500&display=swap');
+
+    :root {
+      --bg: #0D1117;
+      --surface: #161B22;
+      --surface-2: #1C2128;
+      --border: #21262D;
+      --border-hi: #30363D;
+      --text: #C9D1D9;
+      --muted: #8B949E;
+      --bright: #F0F6FC;
+      --blue: #58A6FF;
+      --green: #3FB950;
+      --red: #F85149;
+      --purple: #BC8CFF;
+      --amber: #D29922;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+    }
+
+    /* ── NAV ── */
+    nav {
+      position: sticky; top: 0; z-index: 200;
+      height: 52px;
+      background: rgba(13,17,23,0.88);
+      backdrop-filter: blur(14px);
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center;
+      padding: 0 2rem; gap: 2rem;
+    }
+    .nav-brand {
+      font-family: 'Space Grotesk', sans-serif;
+      font-weight: 700; font-size: 0.9rem;
+      color: var(--bright); letter-spacing: -0.02em;
+      text-decoration: none;
+    }
+    .nav-brand span { color: var(--blue); }
+    .nav-links { display: flex; gap: 1.5rem; list-style: none; margin-left: auto; }
+    .nav-links a {
+      font-size: 0.8rem; color: var(--muted);
+      text-decoration: none; transition: color .15s;
+    }
+    .nav-links a:hover { color: var(--bright); }
+
+    /* ── HERO ── */
+    .hero {
+      max-width: 880px; margin: 0 auto;
+      padding: 4.5rem 2rem 2rem;
+    }
+    .eyebrow {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.7rem; letter-spacing: .12em;
+      text-transform: uppercase; color: var(--blue);
+      margin-bottom: 1.1rem;
+    }
+    h1 {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: clamp(2rem, 5vw, 3.25rem);
+      font-weight: 700; letter-spacing: -0.03em;
+      color: var(--bright); line-height: 1.1;
+      margin-bottom: 1rem;
+    }
+    h1 em { font-style: normal; color: var(--blue); }
+    .hero-sub {
+      font-size: 1.05rem; color: var(--muted);
+      max-width: 580px; line-height: 1.75;
+      margin-bottom: 2.5rem;
+    }
+
+    /* ── PIPELINE INTERACTIVE ── */
+    .pipeline-widget {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 1.75rem;
+      margin-bottom: 3.5rem;
+    }
+    .widget-label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.68rem; color: var(--muted);
+      letter-spacing: .1em; text-transform: uppercase;
+      margin-bottom: 1.5rem;
+    }
+    .pipeline-track {
+      display: flex; align-items: center;
+      gap: 0; overflow-x: auto;
+      padding-bottom: 0.5rem;
+    }
+    .p-node {
+      display: flex; flex-direction: column;
+      align-items: center; gap: 0.45rem;
+      flex-shrink: 0;
+    }
+    .p-box {
+      width: 88px; height: 44px;
+      border-radius: 8px;
+      border: 1.5px solid var(--border);
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.72rem; font-weight: 500;
+      color: var(--muted);
+      transition: all .35s ease;
+    }
+    .p-lbl {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.65rem; color: var(--muted);
+    }
+    .p-arrow {
+      width: 36px; height: 2px;
+      background: var(--border); flex-shrink: 0;
+      position: relative;
+      transition: background .35s;
+    }
+    .p-arrow::after {
+      content: '';
+      position: absolute; right: -4px; top: -3px;
+      border-left: 5px solid var(--border);
+      border-top: 4px solid transparent;
+      border-bottom: 4px solid transparent;
+      transition: border-left-color .35s;
+    }
+
+    /* state classes toggled by JS */
+    .s-done { border-color: var(--green) !important; color: var(--green) !important; background: rgba(63,185,80,.09) !important; }
+    .s-fail { border-color: var(--red) !important; color: var(--red) !important; background: rgba(248,81,73,.09) !important; animation: shake .4s ease; }
+    .s-agent { border-color: var(--purple) !important; color: var(--purple) !important; background: rgba(188,140,255,.09) !important; animation: glow-purple 1.2s ease-in-out infinite; }
+    .s-skip { border-color: var(--border) !important; color: var(--border-hi) !important; opacity:.45; }
+    .arr-done { background: var(--green) !important; }
+    .arr-done::after { border-left-color: var(--green) !important; }
+    .arr-fail { background: var(--red) !important; }
+    .arr-fail::after { border-left-color: var(--red) !important; }
+    .arr-purple { background: var(--purple) !important; }
+    .arr-purple::after { border-left-color: var(--purple) !important; }
+
+    @keyframes shake {
+      0%,100% { transform: translateX(0); }
+      25% { transform: translateX(-5px); }
+      75% { transform: translateX(5px); }
+    }
+    @keyframes glow-purple {
+      0%,100% { box-shadow: 0 0 0 0 rgba(188,140,255,.3); }
+      50% { box-shadow: 0 0 0 7px rgba(188,140,255,0); }
+    }
+
+    .pipeline-btns {
+      display: flex; gap: .6rem; margin-top: 1.4rem;
+      align-items: center; flex-wrap: wrap;
+    }
+    .p-btn {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.72rem; padding: .35rem .85rem;
+      border-radius: 6px;
+      border: 1.5px solid var(--border);
+      background: transparent; color: var(--muted);
+      cursor: pointer; transition: all .2s;
+    }
+    .p-btn:hover { border-color: var(--blue); color: var(--blue); }
+    .p-btn.on { border-color: var(--blue); color: var(--blue); background: rgba(88,166,255,.08); }
+    .p-status {
+      margin-left: auto;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.72rem; color: var(--muted);
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 20px; padding: .25rem .75rem;
+    }
+
+    /* ── CONTENT WRAPPER ── */
+    .content { max-width: 880px; margin: 0 auto; padding: 0 2rem 6rem; }
+
+    /* ── SECTION HEADING ── */
+    .sec-head {
+      margin: 3.5rem 0 1.25rem;
+      padding-bottom: .7rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .sec-eye {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: .68rem; letter-spacing: .1em;
+      text-transform: uppercase; color: var(--muted);
+      margin-bottom: .3rem;
+    }
+    .sec-head h2 {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 1.3rem; font-weight: 600;
+      color: var(--bright); letter-spacing: -.02em;
+    }
+
+    /* ── BEFORE / AFTER ── */
+    .compare {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;
+      margin-bottom: 1rem;
+    }
+    @media (max-width:580px) { .compare { grid-template-columns:1fr; } }
+    .cmp {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px; padding: 1.4rem;
+    }
+    .cmp.bad { border-top: 3px solid var(--red); }
+    .cmp.good { border-top: 3px solid var(--green); }
+    .cmp-title {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: .85rem; font-weight: 600;
+      margin-bottom: .9rem;
+      display: flex; align-items: center; gap: .5rem;
+    }
+    .cmp.bad .cmp-title { color: var(--red); }
+    .cmp.good .cmp-title { color: var(--green); }
+    .cmp ul { list-style: none; display: flex; flex-direction: column; gap: .5rem; }
+    .cmp li { font-size: .875rem; display: flex; gap: .5rem; align-items: flex-start; }
+    .cmp li .ic { flex-shrink:0; margin-top:1px; }
+
+    /* ── PREREQS ── */
+    .prereq-grid {
+      display: flex; flex-direction: column; gap: .5rem;
+      margin-bottom: 1rem;
+    }
+    .prereq {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px; padding: .7rem 1rem;
+      display: flex; align-items: center; gap: .85rem;
+    }
+    .prereq-ico { font-size: 1.1rem; flex-shrink:0; }
+    .prereq-name { font-weight: 500; color: var(--bright); font-size: .875rem; }
+    .prereq-desc { font-size: .78rem; color: var(--muted); margin-top:.1rem; }
+
+    /* ── STEPS ── */
+    .steps { display: flex; flex-direction: column; gap: 1.25rem; }
+
+    .step {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px; overflow: hidden;
+      transition: border-color .2s;
+    }
+    .step:hover { border-color: var(--border-hi); }
+    .step.c-blue  { border-left: 3px solid var(--blue);   }
+    .step.c-green { border-left: 3px solid var(--green);  }
+    .step.c-red   { border-left: 3px solid var(--red);    }
+    .step.c-purple{ border-left: 3px solid var(--purple); }
+    .step.c-amber { border-left: 3px solid var(--amber);  }
+
+    .step-hd {
+      display: flex; align-items: center; gap: .9rem;
+      padding: 1.1rem 1.4rem; cursor: pointer;
+      user-select: none;
+    }
+    .step-num {
+      width: 30px; height: 30px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: .72rem; font-weight: 500; flex-shrink:0;
+    }
+    .c-blue   .step-num { background:rgba(88,166,255,.12);  color:var(--blue);   border:1px solid rgba(88,166,255,.3); }
+    .c-green  .step-num { background:rgba(63,185,80,.12);   color:var(--green);  border:1px solid rgba(63,185,80,.3); }
+    .c-red    .step-num { background:rgba(248,81,73,.12);   color:var(--red);    border:1px solid rgba(248,81,73,.3); }
+    .c-purple .step-num { background:rgba(188,140,255,.12); color:var(--purple); border:1px solid rgba(188,140,255,.3);}
+    .c-amber  .step-num { background:rgba(210,153,34,.12);  color:var(--amber);  border:1px solid rgba(210,153,34,.3); }
+
+    .step-info { flex:1; }
+    .step-title {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: .95rem; font-weight: 600;
+      color: var(--bright); letter-spacing: -.01em;
+    }
+    .step-sub { font-size: .78rem; color: var(--muted); margin-top:.1rem; }
+    .step-chevron {
+      font-size: .75rem; color: var(--muted);
+      font-family: 'JetBrains Mono', monospace;
+      transition: transform .2s;
+    }
+    .step-chevron.open { transform: rotate(90deg); }
+
+    .step-body { display:none; padding: 0 1.4rem 1.4rem; }
+    .step-body.open { display: block; }
+
+    /* What / Why / Achieve */
+    .meta {
+      display: grid; grid-template-columns: repeat(3,1fr);
+      gap: .7rem; margin-bottom: 1.1rem;
+    }
+    @media (max-width:600px) { .meta { grid-template-columns:1fr; } }
+    .meta-card {
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 8px; padding: .7rem .9rem;
+    }
+    .meta-lbl {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: .63rem; letter-spacing: .08em;
+      text-transform: uppercase; margin-bottom: .3rem;
+    }
+    .meta-card.what .meta-lbl { color: var(--blue); }
+    .meta-card.why  .meta-lbl { color: var(--amber); }
+    .meta-card.ach  .meta-lbl { color: var(--green); }
+    .meta-txt { font-size: .8rem; color: var(--text); line-height:1.5; }
+
+    /* Code blocks */
+    .cb {
+      background: #010409;
+      border: 1px solid var(--border);
+      border-radius: 8px; overflow: hidden;
+      margin-bottom: .85rem;
+    }
+    .cb-bar {
+      display: flex; align-items: center;
+      padding: .45rem .75rem;
+      background: var(--surface-2);
+      border-bottom: 1px solid var(--border);
+    }
+    .dots { display: flex; gap: 5px; }
+    .dot { width: 10px; height: 10px; border-radius: 50%; }
+    .dr { background:#FF5F57; } .dy { background:#FFBD2E; } .dg { background:#28CA42; }
+    .cb-lbl {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: .68rem; color: var(--muted); margin-left: .7rem;
+    }
+    .cp-btn {
+      margin-left: auto;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: .68rem; color: var(--muted);
+      background: transparent;
+      border: 1px solid var(--border);
+      border-radius: 4px; padding: .15rem .45rem;
+      cursor: pointer; transition: all .15s;
+    }
+    .cp-btn:hover { color: var(--blue); border-color: var(--blue); }
+    .cp-btn.ok { color: var(--green); border-color: var(--green); }
+    .cb-code {
+      padding: .9rem 1.1rem;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: .8rem; color: #C9D1D9;
+      line-height: 1.7; overflow-x: auto;
+      white-space: pre;
+    }
+    .cb-code .pr  { color: var(--green); user-select:none; }
+    .cb-code .cm  { color: var(--muted); font-style: italic; }
+    .cb-code .ok  { color: var(--green); }
+    .cb-code .err { color: var(--red); }
+    .cb-code .dim { color: var(--muted); }
+
+    /* Output box */
+    .out-box {
+      background: #010409;
+      border: 1px solid var(--border);
+      border-radius: 8px; padding: .8rem 1rem;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: .75rem; line-height: 1.65;
+      margin-top: .5rem;
+    }
+    .out-box.og { border-left: 3px solid var(--green); }
+    .out-box.or { border-left: 3px solid var(--red); }
+    .out-box.op { border-left: 3px solid var(--purple); }
+    .out-lbl {
+      font-size: .62rem; letter-spacing: .08em;
+      text-transform: uppercase; color: var(--muted);
+      margin-bottom: .4rem;
+    }
+
+
+    /* ── TROUBLESHOOT ── */
+    .trbl-list { display: flex; flex-direction: column; gap: .7rem; }
+    .trbl {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px; padding: .9rem 1.1rem;
+    }
+    .trbl-q {
+      font-weight: 500; color: var(--red);
+      font-size: .855rem; margin-bottom: .35rem;
+    }
+    .trbl-a { font-size: .835rem; color: var(--text); line-height: 1.6; }
+
+    code {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: .83em;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 3px; padding: .08em .32em;
+      color: var(--blue);
+    }
+
+    /* ── FOOTER ── */
+    footer {
+      max-width: 880px; margin: 0 auto;
+      padding: 2rem 2rem 4rem;
+      border-top: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: .75rem; color: var(--muted);
+    }
+  </style>
+</head>
+<body>
+
+<!-- ═══════════════════════════ NAV ═══════════════════════════ -->
+<nav>
+  <a class="nav-brand" href="#"><span>Harness</span> AI Demo Guide</a>
+  <ul class="nav-links">
+    <li><a href="#problem">Problem</a></li>
+    <li><a href="#prereqs">Prerequisites</a></li>
+    <li><a href="#setup">Local Setup</a></li>
+    <li><a href="#demo">Local Demo</a></li>
+    <li><a href="#harness">Harness Setup</a></li>
+    <li><a href="#approaches">Approaches</a></li>
+    <li><a href="#workflows">Workflow</a></li>
+    <li><a href="#secrets">Secrets</a></li>
+    <li><a href="#trouble">Troubleshoot</a></li>
+  </ul>
+</nav>
+
+<!-- ═══════════════════════════ HERO ═══════════════════════════ -->
+<section class="hero">
+  <div class="eyebrow">Accenture × Harness — Demo 1 &nbsp;·&nbsp; Python Todo App</div>
+  <h1>Autofix Worker Agent<br><em>Setup &amp; Run Guide</em></h1>
+  <p class="hero-sub">
+    Everything you need to run the demo — what each command does, why it matters, and what you'll see on screen. No Harness account needed for the local run.
+  </p>
+
+  <!-- Interactive pipeline rehearsal -->
+  <div class="pipeline-widget">
+    <div class="widget-label">// interactive — rehearse the pipeline before demo day</div>
+    <div class="pipeline-track">
+      <div class="p-node">
+        <div class="p-box" id="pI">INSTALL</div>
+        <div class="p-lbl">pip install</div>
+      </div>
+      <div class="p-arrow" id="a1"></div>
+      <div class="p-node">
+        <div class="p-box" id="pT">TEST</div>
+        <div class="p-lbl">pytest</div>
+      </div>
+      <div class="p-arrow" id="a2"></div>
+      <div class="p-node">
+        <div class="p-box" id="pA">AGENT</div>
+        <div class="p-lbl">autofix AI</div>
+      </div>
+      <div class="p-arrow" id="a3"></div>
+      <div class="p-node">
+        <div class="p-box" id="pD">RESULT</div>
+        <div class="p-lbl">outcome</div>
+      </div>
+    </div>
+    <div class="pipeline-btns">
+      <button class="p-btn" onclick="setPipeline('idle')" id="b0">reset</button>
+      <button class="p-btn" onclick="setPipeline('green')" id="b1">▶ Scene 1 — all green</button>
+      <button class="p-btn" onclick="setPipeline('broken')" id="b2">▶ Scene 2 — bug + agent fix</button>
+      <span class="p-status" id="pSt">select a scene to rehearse</span>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════ CONTENT ═══════════════════════════ -->
+<div class="content">
+
+  <!-- PROBLEM STATEMENT -->
+  <div class="sec-head" id="problem">
+    <div class="sec-eye">problem statement</div>
+    <h2>The problem this project solves</h2>
+  </div>
+
+  <div class="cb" style="margin-bottom:1.25rem">
+    <div class="cb-bar">
+      <div class="dots"><div class="dot dr"></div><div class="dot dy"></div><div class="dot dg"></div></div>
+      <span class="cb-lbl">the reality of software pipelines today</span>
+    </div>
+    <div class="cb-code">Every software team runs a CI/CD pipeline.
+Every pipeline breaks — multiple times a day.
+
+When a test fails, this is what happens today:
+
+  <span class="err">1. Pipeline runs → test fails → pipeline stops</span>
+  <span class="err">2. A notification goes to a developer</span>
+  <span class="err">3. Developer stops what they are doing</span>
+  <span class="err">4. Developer opens the logs and reads the error</span>
+  <span class="err">5. Developer figures out which file has the bug</span>
+  <span class="err">6. Developer writes a fix</span>
+  <span class="err">7. Developer pushes the fix</span>
+  <span class="err">8. Pipeline runs again</span>
+
+Time lost per incident: <span class="err">15 to 60 minutes</span>
+Incidents per team per day: <span class="err">3 to 10</span>
+This is repetitive, interruptive, and entirely manual.</div>
+  </div>
+
+  <div class="cb" style="margin-bottom:1.25rem">
+    <div class="cb-bar">
+      <div class="dots"><div class="dot dr"></div><div class="dot dy"></div><div class="dot dg"></div></div>
+      <span class="cb-lbl">why this is a problem worth solving</span>
+    </div>
+    <div class="cb-code">Most pipeline failures are not complex.
+
+Common causes:
+  → A typo or accidental method call  <span class="dim">(like .upper() on the wrong variable)</span>
+  → A missing import
+  → A wrong variable name
+  → A formatting issue
+
+These bugs take 2 minutes to fix — but 20 minutes to find,
+context-switch to, fix, and re-verify.
+
+An AI that can read error logs, understand code, and write a fix
+eliminates the entire middle section of that process.
+The developer sees: pipeline failed → pipeline fixed. Nothing in between.</div>
+  </div>
+
+  <div class="cb" style="margin-bottom:1.5rem">
+    <div class="cb-bar">
+      <div class="dots"><div class="dot dr"></div><div class="dot dy"></div><div class="dot dg"></div></div>
+      <span class="cb-lbl">what this project demonstrates</span>
+    </div>
+    <div class="cb-code">This project builds an  <span class="ok">AI-driven CI/CD pipeline</span>  using:
+
+  → A Python Todo application  <span class="dim">(the codebase being tested)</span>
+  → pytest                     <span class="dim">(the test suite that catches bugs)</span>
+  → GitHub Actions             <span class="dim">(the CI/CD pipeline runner)</span>
+  → OpenAI GPT-4o              <span class="dim">(the AI that reads errors and writes fixes)</span>
+  → autofix.py                 <span class="dim">(the agent that connects them)</span>
+
+The demo scenario:
+  A developer pushes code with a bug — <span class="err">.upper()</span> accidentally added to a method.
+  This causes one test to fail:
+    Expected "Buy groceries" but got "<span class="err">BUY GROCERIES</span>"
+
+  The AI agent:
+    → reads the pytest failure output
+    → identifies the exact line with the bug
+    → removes <span class="err">.upper()</span>
+    → commits the fix
+    → pipeline re-runs and passes
+
+  <span class="ok">The developer did nothing after the initial push.</span></div>
+  </div>
+
+  <div class="cb" style="margin-bottom:2.5rem">
+    <div class="cb-bar">
+      <div class="dots"><div class="dot dr"></div><div class="dot dy"></div><div class="dot dg"></div></div>
+      <span class="cb-lbl">project file structure</span>
+    </div>
+    <div class="cb-code">Demo 1/
+├── todo.py                    <span class="dim">← the Python app being tested</span>
+├── todo_BROKEN_for_demo.py    <span class="dim">← same app with the .upper() bug — used to trigger the demo</span>
+├── test_todo.py               <span class="dim">← 7 pytest tests that catch the bug</span>
+├── requirements.txt           <span class="dim">← just pytest</span>
+├── autofix.py                 <span class="dim">← the AI agent: reads error → calls OpenAI → writes fix</span>
+└── .github/
+    └── workflows/
+        └── autofix.yml        <span class="dim">← the pipeline: runs tests → triggers agent → pushes fix</span></div>
+  </div>
+
+  <!-- WHAT THIS PROVES -->
+  <div class="sec-head">
+    <div class="sec-eye">overview</div>
+    <h2>What this demo proves</h2>
+  </div>
+  <div class="compare">
+    <div class="cmp bad">
+      <div class="cmp-title">❌ Without the Agent</div>
+      <ul>
+        <li><span class="ic">→</span> Developer pushes broken code</li>
+        <li><span class="ic">→</span> Pipeline runs tests → FAILS</li>
+        <li><span class="ic">→</span> Engineer reads logs manually</li>
+        <li><span class="ic">→</span> Engineer figures out the bug</li>
+        <li><span class="ic">→</span> Engineer writes + pushes a fix</li>
+        <li><span class="ic">→</span> Pipeline re-triggered manually</li>
+        <li><span class="ic">→</span> <strong>Time lost: 15–60 minutes</strong></li>
+      </ul>
+    </div>
+    <div class="cmp good">
+      <div class="cmp-title">✅ With the Autofix Agent</div>
+      <ul>
+        <li><span class="ic">→</span> Developer pushes broken code</li>
+        <li><span class="ic">→</span> Pipeline runs tests → FAILS</li>
+        <li><span class="ic">→</span> Agent reads the error automatically</li>
+        <li><span class="ic">→</span> Agent identifies the root cause</li>
+        <li><span class="ic">→</span> Agent commits the fix to the branch</li>
+        <li><span class="ic">→</span> Pipeline re-runs → PASSES</li>
+        <li><span class="ic">→</span> <strong>Time lost: 0 minutes</strong></li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- THE BUG (explained simply) -->
+  <div class="cb" style="margin-bottom:2rem">
+    <div class="cb-bar">
+      <div class="dots"><div class="dot dr"></div><div class="dot dy"></div><div class="dot dg"></div></div>
+      <span class="cb-lbl">the bug the agent will fix — todo.py</span>
+    </div>
+    <div class="cb-code"><span class="cm"># BROKEN version — developer accidentally added .upper()</span>
+item = {"id": ..., "text": text.strip()<span class="err">.upper()</span>, "done": False}
+<span class="cm">#                               ^^^^^^^^ this corrupts "Buy groceries" → "BUY GROCERIES"</span>
+
+<span class="cm"># FIXED version — agent removes .upper()</span>
+item = {"id": ..., "text": text.strip()<span class="ok">         </span>, "done": False}</div>
+  </div>
+
+  <!-- PREREQUISITES -->
+  <div class="sec-head" id="prereqs">
+    <div class="sec-eye">before you start</div>
+    <h2>Prerequisites</h2>
+  </div>
+  <div class="prereq-grid">
+    <div class="prereq">
+      <div class="prereq-ico">🐧</div>
+      <div>
+        <div class="prereq-name">Kali Linux terminal</div>
+        <div class="prereq-desc">Press Ctrl+Alt+T or right-click desktop → Open Terminal</div>
+      </div>
+    </div>
+    <div class="prereq">
+      <div class="prereq-ico">🐍</div>
+      <div>
+        <div class="prereq-name">Python 3 installed</div>
+        <div class="prereq-desc">Already on Kali — verify with: <code>python3 --version</code></div>
+      </div>
+    </div>
+    <div class="prereq">
+      <div class="prereq-ico">📁</div>
+      <div>
+        <div class="prereq-name">Project files present</div>
+        <div class="prereq-desc">All files are in: <code>/home/kali/Documents/AI-driven Software Engineering/Demo 1/</code></div>
+      </div>
+    </div>
+    <div class="prereq">
+      <div class="prereq-ico">🌐</div>
+      <div>
+        <div class="prereq-name">Internet connection (first run only)</div>
+        <div class="prereq-desc">Needed to download pytest into the virtual environment</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SETUP STEPS -->
+  <div class="sec-head" id="setup">
+    <div class="sec-eye">part 1 of 2</div>
+    <h2>One-time setup</h2>
+  </div>
+  <div class="steps">
+
+    <!-- STEP 1 -->
+    <div class="step c-blue">
+      <div class="step-hd" onclick="toggle(this)">
+        <div class="step-num">01</div>
+        <div class="step-info">
+          <div class="step-title">Open a terminal</div>
+          <div class="step-sub">Get a shell on your Kali machine</div>
+        </div>
+        <div class="step-chevron open">▶</div>
+      </div>
+      <div class="step-body open">
+        <div class="meta">
+          <div class="meta-card what"><div class="meta-lbl">What you're doing</div><div class="meta-txt">Opening a command-line interface on Kali Linux</div></div>
+          <div class="meta-card why"><div class="meta-lbl">Why</div><div class="meta-txt">All demo commands run in the shell — there is no GUI app to open</div></div>
+          <div class="meta-card ach"><div class="meta-lbl">What you achieve</div><div class="meta-txt">A ready environment where you can type and run commands</div></div>
+        </div>
+        <div class="cb">
+          <div class="cb-bar">
+            <div class="dots"><div class="dot dr"></div><div class="dot dy"></div><div class="dot dg"></div></div>
+            <span class="cb-lbl">keyboard shortcut</span>
+          </div>
+          <div class="cb-code">Press  <span class="ok">Ctrl + Alt + T</span>
+
+OR  right-click the desktop → <span class="ok">Open Terminal</span></div>
+        </div>
+        <div class="out-box og">
+          <div class="out-lbl">what you'll see</div>
+          <span class="ok">kali@kali:~$</span> &nbsp; ← your prompt, ready for commands
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 2 -->
+    <div class="step c-blue">
+      <div class="step-hd" onclick="toggle(this)">
+        <div class="step-num">02</div>
+        <div class="step-info">
+          <div class="step-title">Navigate to the project folder</div>
+          <div class="step-sub">Set your working directory to Demo 1</div>
+        </div>
+        <div class="step-chevron">▶</div>
+      </div>
+      <div class="step-body">
+        <div class="meta">
+          <div class="meta-card what"><div class="meta-lbl">What you're doing</div><div class="meta-txt">Changing directory to where all the project files live</div></div>
+          <div class="meta-card why"><div class="meta-lbl">Why</div><div class="meta-txt">All commands must run from inside the project folder, otherwise Python won't find the files</div></div>
+          <div class="meta-card ach"><div class="meta-lbl">What you achieve</div><div class="meta-txt">Your terminal is now "inside" the project — all future commands work from here</div></div>
+        </div>
+        <div class="cb">
+          <div class="cb-bar">
+            <div class="dots"><div class="dot dr"></div><div class="dot dy"></div><div class="dot dg"></div></div>
+            <span class="cb-lbl">terminal</span>
+            <button class="cp-btn" onclick="copy(this, 'cd \"/home/kali/Documents/AI-driven Software Engineering/Demo 1\"')">copy</button>
+          </div>
+          <div class="cb-code"><span class="pr">$ </span>cd "/home/kali/Documents/AI-driven Software Engineering/Demo 1"</div>
+        </div>
+        <div class="out-box og">
+          <div class="out-lbl">what you'll see</div>
+          <span class="ok">kali@kali:~/Documents/AI-driven Software Engineering/Demo 1$</span>
+          <br><span class="dim">(the prompt changes to show you're inside the project)</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 3 -->
+    <div class="step c-amber">
+      <div class="step-hd" onclick="toggle(this)">
+        <div class="step-num">03</div>
+        <div class="step-info">
+          <div class="step-title">Create a Python virtual environment</div>
+          <div class="step-sub">One-time only — isolates your project's packages</div>
+        </div>
+        <div class="step-chevron">▶</div>
+      </div>
+      <div class="step-body">
+        <div class="meta">
+          <div class="meta-card what"><div class="meta-lbl">What you're doing</div><div class="meta-txt">Creating a self-contained Python environment just for this project</div></div>
+          <div class="meta-card why"><div class="meta-lbl">Why</div><div class="meta-txt">Kali Linux blocks installing packages system-wide (PEP 668). A virtual environment gives you a safe, isolated space to install pytest without touching the OS</div></div>
+          <div class="meta-card ach"><div class="meta-lbl">What you achieve</div><div class="meta-txt">A <code>.venv/</code> folder appears — your private Python that you fully control</div></div>
+        </div>
+        <div class="cb">
+          <div class="cb-bar">
+            <div class="dots"><div class="dot dr"></div><div class="dot dy"></div><div class="dot dg"></div></div>
+            <span class="cb-lbl">terminal — run once</span>
+            <button class="cp-btn" onclick="copy(this, 'python3 -m venv .venv')">copy</button>
+          </div>
+          <div class="cb-code"><span class="pr">$ </span>python3 -m venv .venv</div>
+        </div>
+        <div class="out-box og">
+          <div class="out-lbl">what you'll see</div>
+          <span class="dim">(no output — silence means success. A .venv/ folder now exists)</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 4 -->
+    <div class="step c-amber">
+      <div class="step-hd" onclick="toggle(this)">
+        <div class="step-num">04</div>
+        <div class="step-info">
+          <div class="step-title">Install pytest</div>
+          <div class="step-sub">One-time only — downloads the test runner</div>
+        </div>
+        <div class="step-chevron">▶</div>
+      </div>
+      <div class="step-body">
+        <div class="meta">
+          <div class="meta-card what"><div class="meta-lbl">What you're doing</div><div class="meta-txt">Installing pytest (the tool that runs your tests) into the virtual environment</div></div>
+          <div class="meta-card why"><div class="meta-lbl">Why</div><div class="meta-txt">pytest is not built into Python — it must be installed. It's what checks whether the todo app is working correctly</div></div>
+          <div class="meta-card ach"><div class="meta-lbl">What you achieve</div><div class="meta-txt">You can now run <code>pytest</code> — the same tool Harness CI runs in the pipeline</div></div>
+        </div>
+        <div class="cb">
+          <div class="cb-bar">
+            <div class="dots"><div class="dot dr"></div><div class="dot dy"></div><div class="dot dg"></div></div>
+            <span class="cb-lbl">terminal — run once</span>
+            <button class="cp-btn" onclick="copy(this, '.venv/bin/pip install -r requirements.txt')">copy</button>
+          </div>
+          <div class="cb-code"><span class="pr">$ </span>.venv/bin/pip install -r requirements.txt</div>
+        </div>
+        <div class="out-box og">
+          <div class="out-lbl">what you'll see</div>
+          Successfully installed pytest-8.3.5
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /setup steps -->
+
+  <!-- DEMO STEPS -->
+  <div class="sec-head" id="demo">
+    <div class="sec-eye">part 2 of 2 — the actual demo</div>
+    <h2>Run the demo</h2>
+  </div>
+  <div class="steps">
+
+    <!-- STEP 5 -->
+    <div class="step c-green">
+      <div class="step-hd" onclick="toggle(this)">
+        <div class="step-num">05</div>
+        <div class="step-info">
+          <div class="step-title">Run tests on working code</div>
+          <div class="step-sub">Scene 1 — establish the green baseline</div>
+        </div>
+        <div class="step-chevron">▶</div>
+      </div>
+      <div class="step-body">
+        <div class="meta">
+          <div class="meta-card what"><div class="meta-lbl">What you're doing</div><div class="meta-txt">Running 7 automated tests against the current working version of the app</div></div>
+          <div class="meta-card why"><div class="meta-lbl">Why</div><div class="meta-txt">You need to show the audience that the pipeline starts green — so when it fails later, it's clearly because of the code change, not a setup problem</div></div>
+          <div class="meta-card ach"><div class="meta-lbl">What you achieve</div><div class="meta-txt">7 tests pass. The audience sees a healthy baseline. This is <strong>Scene 1</strong> of the demo</div></div>
+        </div>
+        <div class="cb">
+          <div class="cb-bar">
+            <div class="dots"><div class="dot dr"></div><div class="dot dy"></div><div class="dot dg"></div></div>
+            <span class="cb-lbl">terminal</span>
+            <button class="cp-btn" onclick="copy(this, '.venv/bin/pytest test_todo.py -v')">copy</button>
+          </div>
+          <div class="cb-code"><span class="pr">$ </span>.venv/bin/pytest test_todo.py -v</div>
+        </div>
+        <div class="out-box og">
+          <div class="out-lbl">expected output — all green</div>
+<span class="ok">PASSED</span> test_todo.py::test_add_item_preserves_case
+<span class="ok">PASSED</span> test_todo.py::test_add_item_returns_correct_id
+<span class="ok">PASSED</span> test_todo.py::test_add_item_starts_not_done
+<span class="ok">PASSED</span> test_todo.py::test_complete_item
+<span class="ok">PASSED</span> test_todo.py::test_delete_item
+<span class="ok">PASSED</span> test_todo.py::test_empty_item_raises
+<span class="ok">PASSED</span> test_todo.py::test_pending_vs_completed_split
+
+<span class="ok">7 passed in 0.02s</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 6 -->
+    <div class="step c-red">
+      <div class="step-hd" onclick="toggle(this)">
+        <div class="step-num">06</div>
+        <div class="step-info">
+          <div class="step-title">Introduce the bug</div>
+          <div class="step-sub">Simulate a developer pushing broken code to the branch</div>
+        </div>
+        <div class="step-chevron">▶</div>
+      </div>
+      <div class="step-body">
+        <div class="meta">
+          <div class="meta-card what"><div class="meta-lbl">What you're doing</div><div class="meta-txt">Replacing the working <code>todo.py</code> with the broken version that has a <code>.upper()</code> bug</div></div>
+          <div class="meta-card why"><div class="meta-lbl">Why</div><div class="meta-txt">This simulates a developer accidentally committing code that breaks a test — the exact real-world scenario the Autofix Agent is designed for</div></div>
+          <div class="meta-card ach"><div class="meta-lbl">What you achieve</div><div class="meta-txt">The app is now broken — <code>todo.py</code> converts all text to uppercase, which the tests will catch</div></div>
+        </div>
+        <div class="cb">
+          <div class="cb-bar">
+            <div class="dots"><div class="dot dr"></div><div class="dot dy"></div><div class="dot dg"></div></div>
+            <span class="cb-lbl">terminal</span>
+            <button class="cp-btn" onclick="copy(this, 'cp todo_BROKEN_for_demo.py todo.py')">copy</button>
+          </div>
+          <div class="cb-code"><span class="pr">$ </span>cp todo_BROKEN_for_demo.py todo.py</div>
+        </div>
+        <div class="out-box or">
+          <div class="out-lbl">what changed in todo.py</div>
+          <span class="dim">line 9 before:</span>  item = {"text": text.strip()<span class="ok">        </span>}
+          <span class="dim">line 9 after: </span>  item = {"text": text.strip()<span class="err">.upper()</span>}
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 7 -->
+    <div class="step c-red">
+      <div class="step-hd" onclick="toggle(this)">
+        <div class="step-num">07</div>
+        <div class="step-info">
+          <div class="step-title">Run tests — watch it fail</div>
+          <div class="step-sub">Scene 2 begins — the pipeline catches the bug</div>
+        </div>
+        <div class="step-chevron">▶</div>
+      </div>
+      <div class="step-body">
+        <div class="meta">
+          <div class="meta-card what"><div class="meta-lbl">What you're doing</div><div class="meta-txt">Running the same 7 tests against the broken code</div></div>
+          <div class="meta-card why"><div class="meta-lbl">Why</div><div class="meta-txt">To demonstrate what the Harness pipeline sees — a test failure with a clear error message. This is the error the Agent will read and understand</div></div>
+          <div class="meta-card ach"><div class="meta-lbl">What you achieve</div><div class="meta-txt">1 test fails with a clear message: <code>'BUY GROCERIES' != 'Buy groceries'</code>. The audience sees the problem</div></div>
+        </div>
+        <div class="cb">
+          <div class="cb-bar">
+            <div class="dots"><div class="dot dr"></div><div class="dot dy"></div><div class="dot dg"></div></div>
+            <span class="cb-lbl">terminal</span>
+            <button class="cp-btn" onclick="copy(this, '.venv/bin/pytest test_todo.py -v')">copy</button>
+          </div>
+          <div class="cb-code"><span class="pr">$ </span>.venv/bin/pytest test_todo.py -v</div>
+        </div>
+        <div class="out-box or">
+          <div class="out-lbl">expected output — 1 failure</div>
+<span class="err">FAILED</span> test_todo.py::test_add_item_preserves_case
+<span class="ok">PASSED</span> test_todo.py::test_add_item_returns_correct_id
+<span class="ok">PASSED</span> test_todo.py::test_add_item_starts_not_done
+<span class="ok">PASSED</span> test_todo.py::test_complete_item
+<span class="ok">PASSED</span> test_todo.py::test_delete_item
+<span class="ok">PASSED</span> test_todo.py::test_empty_item_raises
+<span class="ok">PASSED</span> test_todo.py::test_pending_vs_completed_split
+
+AssertionError: Expected 'Buy groceries' but got '<span class="err">BUY GROCERIES</span>'
+<span class="err">1 failed</span>, 6 passed in 0.02s
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 8 -->
+    <div class="step c-purple">
+      <div class="step-hd" onclick="toggle(this)">
+        <div class="step-num">08</div>
+        <div class="step-info">
+          <div class="step-title">Apply the Agent's fix</div>
+          <div class="step-sub">What the Autofix Agent does automatically in Harness</div>
+        </div>
+        <div class="step-chevron">▶</div>
+      </div>
+      <div class="step-body">
+        <div class="meta">
+          <div class="meta-card what"><div class="meta-lbl">What you're doing</div><div class="meta-txt">Running a one-line command to remove the <code>.upper()</code> bug from <code>todo.py</code></div></div>
+          <div class="meta-card why"><div class="meta-lbl">Why</div><div class="meta-txt">This is exactly what the Harness Autofix Agent does autonomously — it reads the pytest error, locates the offending line, and removes the bug. Locally, we do this step manually to show the audience what the agent fixed</div></div>
+          <div class="meta-card ach"><div class="meta-lbl">What you achieve</div><div class="meta-txt"><code>todo.py</code> is restored to the correct version — ready for the final green run</div></div>
+        </div>
+        <div class="cb">
+          <div class="cb-bar">
+            <div class="dots"><div class="dot dr"></div><div class="dot dy"></div><div class="dot dg"></div></div>
+            <span class="cb-lbl">terminal — the "agent" step</span>
+            <button class="cp-btn" onclick="copy(this, `sed -i 's/text.strip().upper()/text.strip()/' todo.py`)">copy</button>
+          </div>
+          <div class="cb-code"><span class="pr">$ </span>sed -i 's/text.strip().upper()/text.strip()/' todo.py
+
+<span class="cm"># In Harness, this entire step is done automatically by the Agent.
+# It reads the pytest output, understands the bug, and commits the fix.</span></div>
+        </div>
+        <div class="out-box op">
+          <div class="out-lbl">what changed</div>
+          <span class="dim">Before:</span>  item = {"text": text.strip()<span class="err">.upper()</span>}
+          <span class="dim">After: </span>  item = {"text": text.strip()<span class="ok">        </span>}
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 9 -->
+    <div class="step c-green">
+      <div class="step-hd" onclick="toggle(this)">
+        <div class="step-num">09</div>
+        <div class="step-info">
+          <div class="step-title">Run tests again — back to green</div>
+          <div class="step-sub">Pipeline re-runs and passes — demo complete</div>
+        </div>
+        <div class="step-chevron">▶</div>
+      </div>
+      <div class="step-body">
+        <div class="meta">
+          <div class="meta-card what"><div class="meta-lbl">What you're doing</div><div class="meta-txt">Running the tests one final time on the fixed code</div></div>
+          <div class="meta-card why"><div class="meta-lbl">Why</div><div class="meta-txt">To complete the loop — the audience needs to see the pipeline go from red back to green after the agent acted. This is the payoff moment</div></div>
+          <div class="meta-card ach"><div class="meta-lbl">What you achieve</div><div class="meta-txt">All 7 tests pass again. Pipeline is green. The bug was found, fixed, and verified — entirely without manual intervention</div></div>
+        </div>
+        <div class="cb">
+          <div class="cb-bar">
+            <div class="dots"><div class="dot dr"></div><div class="dot dy"></div><div class="dot dg"></div></div>
+            <span class="cb-lbl">terminal</span>
+            <button class="cp-btn" onclick="copy(this, '.venv/bin/pytest test_todo.py -v')">copy</button>
+          </div>
+          <div class="cb-code"><span class="pr">$ </span>.venv/bin/pytest test_todo.py -v</div>
+        </div>
+        <div class="out-box og">
+          <div class="out-lbl">expected output — all green again</div>
+<span class="ok">PASSED</span> test_todo.py::test_add_item_preserves_case   <span class="dim">← was failing, now fixed</span>
+<span class="ok">PASSED</span> test_todo.py::test_add_item_returns_correct_id
+<span class="ok">PASSED</span> test_todo.py::test_add_item_starts_not_done
+<span class="ok">PASSED</span> test_todo.py::test_complete_item
+<span class="ok">PASSED</span> test_todo.py::test_delete_item
+<span class="ok">PASSED</span> test_todo.py::test_empty_item_raises
+<span class="ok">PASSED</span> test_todo.py::test_pending_vs_completed_split
+
+<span class="ok">7 passed in 0.01s</span>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /demo steps -->
+
+  <!-- ═══ HARNESS SETUP ═══ -->
+  <div class="sec-head" id="harness">
+    <div class="sec-eye">part 3 of 3 — the real thing</div>
+    <h2>Harness setup — make the Agent fix it automatically</h2>
+  </div>
+  <p style="font-size:.9rem;color:var(--muted);margin-bottom:1.5rem;line-height:1.7;">
+    The local demo above shows the <em>concept</em>. This section wires it up for real — push broken code to GitHub, and Harness automatically detects the failure, runs the Autofix Agent, and commits the fix. No manual steps.
+  </p>
+
+  <!-- flow diagram -->
+  <div class="cb" style="margin-bottom:2rem">
+    <div class="cb-bar">
+      <div class="dots"><div class="dot dr"></div><div class="dot dy"></div><div class="dot dg"></div></div>
+      <span class="cb-lbl">how it works end-to-end</span>
+    </div>
+    <div class="cb-code"><span class="ok">You push broken code to GitHub</span>
+        ↓
+<span class="dim">GitHub webhook fires → Harness pipeline triggers</span>
+        ↓
+<span class="dim">Step 1: pip install -r requirements.txt       ✓</span>
+        ↓
+<span class="err">Step 2: pytest test_todo.py -v               ✗  FAILS</span>
+        ↓
+<span class="ok">Step 3: Autofix Agent wakes up</span>
+   <span class="dim">→ reads the pytest error output</span>
+   <span class="dim">→ identifies: .upper() on line 9 is the bug</span>
+   <span class="dim">→ removes .upper(), commits fix to your branch</span>
+   <span class="dim">→ re-triggers the pipeline</span>
+        ↓
+<span class="ok">Step 2 (retry): pytest test_todo.py -v       ✓  7 passed</span>
+        ↓
+<span class="ok">Pipeline GREEN — you did nothing</span></div>
+  </div>
+
+  <div class="steps">
+
+    <!-- H1 -->
+    <div class="step c-blue">
+      <div class="step-hd" onclick="toggle(this)">
+        <div class="step-num">H1</div>
+        <div class="step-info">
+          <div class="step-title">Create a free Harness account</div>
+          <div class="step-sub">Sign up at app.harness.io — takes 2 minutes</div>
+        </div>
+        <div class="step-chevron">▶</div>
+      </div>
+      <div class="step-body">
+        <div class="meta">
+          <div class="meta-card what"><div class="meta-lbl">What you're doing</div><div class="meta-txt">Creating a Harness account — the platform that runs your AI-powered CI/CD pipeline</div></div>
+          <div class="meta-card why"><div class="meta-lbl">Why</div><div class="meta-txt">Harness hosts the pipeline and the Autofix Agent. Without an account you can only run the demo locally</div></div>
+          <div class="meta-card ach"><div class="meta-lbl">What you achieve</div><div class="meta-txt">Access to Harness UI where you will connect GitHub, configure the LLM, and install the Agent</div></div>
+        </div>
+        <div class="out-box og">
+          <div class="out-lbl">step by step</div>
+          1. Open your browser → go to  <strong>app.harness.io</strong>
+          2. Click  <strong>Sign up for free</strong>
+          3. Sign up with Google or create an account with your email
+          4. When asked to create a project, name it:  <strong>todo-agent-demo</strong>
+          5. Note your  <strong>Account ID</strong>  shown in the URL:
+             app.harness.io/ng/account/<span class="ok">YOUR_ACCOUNT_ID</span>/...
+        </div>
+      </div>
+    </div>
+
+    <!-- H2 -->
+    <div class="step c-blue">
+      <div class="step-hd" onclick="toggle(this)">
+        <div class="step-num">H2</div>
+        <div class="step-info">
+          <div class="step-title">Push the project to GitHub</div>
+          <div class="step-sub">Harness needs a GitHub repo to clone and monitor</div>
+        </div>
+        <div class="step-chevron">▶</div>
+      </div>
+      <div class="step-body">
+        <div class="meta">
+          <div class="meta-card what"><div class="meta-lbl">What you're doing</div><div class="meta-txt">Creating a GitHub repository and pushing all project files to it</div></div>
+          <div class="meta-card why"><div class="meta-lbl">Why</div><div class="meta-txt">Harness pulls code from GitHub to run the pipeline. The Agent also pushes its fix commit back to GitHub. Without a repo, neither can happen</div></div>
+          <div class="meta-card ach"><div class="meta-lbl">What you achieve</div><div class="meta-txt">Your code is on GitHub and ready for Harness to clone and monitor for changes</div></div>
+        </div>
+        <div class="cb">
+          <div class="cb-bar">
+            <div class="dots"><div class="dot dr"></div><div class="dot dy"></div><div class="dot dg"></div></div>
+            <span class="cb-lbl">terminal — run from inside Demo 1 folder</span>
+          </div>
+          <div class="cb-code"><span class="cm"># First: create a new repo on github.com (click + → New repository)
+# Name it: todo-agent-demo   Visibility: Public   Do NOT add README</span>
+
+<span class="pr">$ </span>git init
+<span class="pr">$ </span>git add todo.py test_todo.py requirements.txt .harness/pipeline.yaml
+<span class="pr">$ </span>git commit -m "Initial demo setup"
+<span class="pr">$ </span>git branch -M main
+<span class="pr">$ </span>git remote add origin https://github.com/<span class="ok">YOUR_USERNAME</span>/todo-agent-demo.git
+<span class="pr">$ </span>git push -u origin main</div>
+        </div>
+        <div class="out-box og">
+          <div class="out-lbl">what you'll see</div>
+          Branch 'main' set up to track remote branch 'main' from 'origin'.
+        </div>
+      </div>
+    </div>
+
+    <!-- H3 -->
+    <div class="step c-amber">
+      <div class="step-hd" onclick="toggle(this)">
+        <div class="step-num">H3</div>
+        <div class="step-info">
+          <div class="step-title">Create a GitHub Personal Access Token</div>
+          <div class="step-sub">Gives Harness permission to read your repo and the Agent permission to push fixes</div>
+        </div>
+        <div class="step-chevron">▶</div>
+      </div>
+      <div class="step-body">
+        <div class="meta">
+          <div class="meta-card what"><div class="meta-lbl">What you're doing</div><div class="meta-txt">Generating a GitHub token that Harness will use to clone your repo and that the Agent will use to commit its fix</div></div>
+          <div class="meta-card why"><div class="meta-lbl">Why</div><div class="meta-txt">GitHub requires authentication for any read/write operation. The token acts as a password that Harness stores securely in its vault</div></div>
+          <div class="meta-card ach"><div class="meta-lbl">What you achieve</div><div class="meta-txt">A token string (starts with <code>ghp_</code>) that you'll paste into Harness in the next step</div></div>
+        </div>
+        <div class="out-box og">
+          <div class="out-lbl">step by step — in GitHub</div>
+          1. github.com → top-right avatar → <strong>Settings</strong>
+          2. Left sidebar (scroll to bottom) → <strong>Developer settings</strong>
+          3. <strong>Personal access tokens</strong> → <strong>Tokens (classic)</strong>
+          4. Click  <strong>Generate new token (classic)</strong>
+          5. Note: <strong>harness-autofix-demo</strong>
+          6. Expiration: <strong>90 days</strong>
+          7. Check these scopes:
+             ☑  <span class="ok">repo</span>          (full repo access)
+             ☑  <span class="ok">workflow</span>      (re-trigger pipelines)
+          8. Click  <strong>Generate token</strong>
+          9. <span class="err">COPY THE TOKEN NOW</span> — GitHub shows it only once
+             It looks like:  ghp_xxxxxxxxxxxxxxxxxxxx
+        </div>
+      </div>
+    </div>
+
+    <!-- H4 -->
+    <div class="step c-amber">
+      <div class="step-hd" onclick="toggle(this)">
+        <div class="step-num">H4</div>
+        <div class="step-info">
+          <div class="step-title">Add GitHub connector in Harness</div>
+          <div class="step-sub">Tells Harness where your repo is and how to access it</div>
+        </div>
+        <div class="step-chevron">▶</div>
+      </div>
+      <div class="step-body">
+        <div class="meta">
+          <div class="meta-card what"><div class="meta-lbl">What you're doing</div><div class="meta-txt">Creating a connector in Harness that links to your GitHub repo using the token from H3</div></div>
+          <div class="meta-card why"><div class="meta-lbl">Why</div><div class="meta-txt">Every Harness pipeline needs to know <em>where</em> to pull code from and <em>how</em> to authenticate. The connector stores these details securely, separate from the pipeline YAML</div></div>
+          <div class="meta-card ach"><div class="meta-lbl">What you achieve</div><div class="meta-txt">A GitHub connector with an ID like <code>github_todo_demo</code> — you'll reference this in the pipeline YAML</div></div>
+        </div>
+        <div class="out-box og">
+          <div class="out-lbl">step by step — in Harness UI</div>
+          1. Harness → left sidebar → <strong>Project Settings</strong>
+          2. Under  <strong>Project-level resources</strong>  →  <strong>Connectors</strong>
+          3. Click  <strong>+ New Connector</strong>
+          4. Search for  <strong>GitHub</strong>  → select it
+          5. Name: <strong>GitHub Todo Demo</strong>
+             Identifier will auto-fill as:  <span class="ok">GitHub_Todo_Demo</span>
+          6. URL type: <strong>Repository</strong>
+             GitHub Repository URL:  https://github.com/YOUR_USERNAME/todo-agent-demo
+          7. Click  <strong>Continue</strong>
+          8. Authentication:
+             Connection type: <strong>HTTP</strong>
+             Username: your GitHub username
+             Personal Access Token: click  <strong>+ New Secret</strong>
+               → Secret name:  <strong>github-pat</strong>
+               → Paste the  <span class="ok">ghp_xxx</span>  token from H3
+               → Click  <strong>Save</strong>
+          9. Click  <strong>Continue</strong>  →  <strong>Connect through Harness Platform</strong>
+          10. Click  <strong>Save and Test</strong>
+              → Must show:  <span class="ok">Connection Successful</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- H5 -->
+    <div class="step c-amber">
+      <div class="step-hd" onclick="toggle(this)">
+        <div class="step-num">H5</div>
+        <div class="step-info">
+          <div class="step-title">Get an Anthropic API key</div>
+          <div class="step-sub">The LLM that powers the Autofix Agent's reasoning</div>
+        </div>
+        <div class="step-chevron">▶</div>
+      </div>
+      <div class="step-body">
+        <div class="meta">
+          <div class="meta-card what"><div class="meta-lbl">What you're doing</div><div class="meta-txt">Getting an API key from Anthropic so the Autofix Agent can use Claude to read the error and reason about the fix</div></div>
+          <div class="meta-card why"><div class="meta-lbl">Why</div><div class="meta-txt">The Autofix Agent is not a fixed script — it uses a large language model (Claude) to understand the test failure and decide what to change. The API key is how Harness calls Claude on your behalf</div></div>
+          <div class="meta-card ach"><div class="meta-lbl">What you achieve</div><div class="meta-txt">An API key (starts with <code>sk-ant-</code>) you'll store as a Harness secret in the next step</div></div>
+        </div>
+        <div class="out-box og">
+          <div class="out-lbl">step by step — in Anthropic console</div>
+          1. Open browser → go to  <strong>console.anthropic.com</strong>
+          2. Sign in or create a free account
+          3. Left sidebar → <strong>API Keys</strong>
+          4. Click  <strong>Create Key</strong>
+          5. Name: <strong>harness-autofix-demo</strong>
+          6. Click  <strong>Create Key</strong>
+          7. <span class="err">COPY THE KEY NOW</span> — shown only once
+             It looks like:  sk-ant-xxxxxxxxxxxxxxxxxxxx
+        </div>
+      </div>
+    </div>
+
+    <!-- H6 -->
+    <div class="step c-amber">
+      <div class="step-hd" onclick="toggle(this)">
+        <div class="step-num">H6</div>
+        <div class="step-info">
+          <div class="step-title">Add AI/LLM connector in Harness</div>
+          <div class="step-sub">Connects Harness to Claude — the brain of the Agent</div>
+        </div>
+        <div class="step-chevron">▶</div>
+      </div>
+      <div class="step-body">
+        <div class="meta">
+          <div class="meta-card what"><div class="meta-lbl">What you're doing</div><div class="meta-txt">Creating a connector that lets the Autofix Agent call Claude (Anthropic's AI) during the pipeline run</div></div>
+          <div class="meta-card why"><div class="meta-lbl">Why</div><div class="meta-txt">Without an LLM connector, the Agent has no AI to reason with — it wouldn't know what the error means or how to fix it</div></div>
+          <div class="meta-card ach"><div class="meta-lbl">What you achieve</div><div class="meta-txt">A working AI connector — the Agent can now call Claude to analyze errors and generate fixes</div></div>
+        </div>
+        <div class="out-box og">
+          <div class="out-lbl">step by step — in Harness UI</div>
+          1. Harness → <strong>Project Settings</strong> → <strong>Connectors</strong>
+          2. Click  <strong>+ New Connector</strong>
+          3. Search for  <strong>Anthropic</strong>  (or  <strong>AI</strong>)  → select it
+          4. Name: <strong>Claude Autofix</strong>
+             Identifier will auto-fill as:  <span class="ok">Claude_Autofix</span>
+          5. Click  <strong>Continue</strong>
+          6. API Key: click  <strong>+ New Secret</strong>
+             → Secret name:  <strong>anthropic-api-key</strong>
+             → Paste the  <span class="ok">sk-ant-xxx</span>  key from H5
+             → Click  <strong>Save</strong>
+          7. Click  <strong>Save and Test</strong>
+             → Must show:  <span class="ok">Connection Successful</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- H7 -->
+    <div class="step c-blue">
+      <div class="step-hd" onclick="toggle(this)">
+        <div class="step-num">H7</div>
+        <div class="step-info">
+          <div class="step-title">Import the pipeline into Harness</div>
+          <div class="step-sub">The pipeline YAML is already in your repo at .harness/pipeline.yaml</div>
+        </div>
+        <div class="step-chevron">▶</div>
+      </div>
+      <div class="step-body">
+        <div class="meta">
+          <div class="meta-card what"><div class="meta-lbl">What you're doing</div><div class="meta-txt">Loading the pre-written pipeline YAML into Harness and filling in your connector IDs</div></div>
+          <div class="meta-card why"><div class="meta-lbl">Why</div><div class="meta-txt">The pipeline defines the 3 steps: Install → Test → Autofix Agent. Harness needs to know about it before it can run it</div></div>
+          <div class="meta-card ach"><div class="meta-lbl">What you achieve</div><div class="meta-txt">A live Harness pipeline ready to trigger on every push to your repo</div></div>
+        </div>
+        <div class="out-box og">
+          <div class="out-lbl">step by step — in Harness UI</div>
+          1. Harness → left sidebar → <strong>Pipelines</strong>
+          2. Click  <strong>+ Create Pipeline</strong>
+          3. Select  <strong>Import from Git</strong>
+          4. Git Connector: select  <strong>GitHub Todo Demo</strong>  (from H4)
+             Repository:  todo-agent-demo
+             Branch:  main
+             YAML Path:  .harness/pipeline.yaml
+          5. Click  <strong>Import</strong>
+          6. The pipeline editor opens — click  <strong>YAML</strong>  tab (top right)
+          7. Replace every  <span class="err">&lt;PLACEHOLDER&gt;</span>  with your real values:
+
+             <span class="err">&lt;YOUR_PROJECT_ID&gt;</span>     → shown in Harness URL after /orgs/.../projects/
+             <span class="err">&lt;YOUR_ORG_ID&gt;</span>         → shown in Harness URL after /orgs/
+             <span class="err">&lt;YOUR_GITHUB_CONNECTOR_ID&gt;</span>  → GitHub_Todo_Demo
+             <span class="err">&lt;YOUR_LLM_CONNECTOR_ID&gt;</span>     → Claude_Autofix
+             <span class="err">&lt;YOUR_REPO_NAME&gt;</span>      → todo-agent-demo
+             <span class="err">&lt;YOUR_GITHUB_ORG&gt;</span>     → your GitHub username
+
+          8. Click  <strong>Save</strong>
+        </div>
+      </div>
+    </div>
+
+    <!-- H8 -->
+    <div class="step c-purple">
+      <div class="step-hd" onclick="toggle(this)">
+        <div class="step-num">H8</div>
+        <div class="step-info">
+          <div class="step-title">Install the Autofix Agent from Marketplace</div>
+          <div class="step-sub">The agent that reads errors and commits fixes automatically</div>
+        </div>
+        <div class="step-chevron">▶</div>
+      </div>
+      <div class="step-body">
+        <div class="meta">
+          <div class="meta-card what"><div class="meta-lbl">What you're doing</div><div class="meta-txt">Installing the Harness Autofix prebuilt Agent and connecting it to your LLM and GitHub connectors</div></div>
+          <div class="meta-card why"><div class="meta-lbl">Why</div><div class="meta-txt">The Agent is a packaged AI worker. Installing it from the Marketplace activates the <code>harness/autofix</code> step type used in your pipeline YAML. Without this, the Agent step would fail with "unknown step type"</div></div>
+          <div class="meta-card ach"><div class="meta-lbl">What you achieve</div><div class="meta-txt">The Agent is live. When the test step fails, it will automatically read the error, write a fix, and commit it — then re-trigger the pipeline</div></div>
+        </div>
+        <div class="out-box op">
+          <div class="out-lbl">step by step — in Harness UI</div>
+          1. Harness → left sidebar → <strong>AI Agents</strong>
+             (or search "Agent Marketplace" in the top search bar)
+          2. Find the card:  <strong>Autofix</strong>
+             Description: "Reads build failures and commits fixes automatically"
+          3. Click  <strong>Install</strong>
+          4. In the install dialog:
+             LLM Connector:  select  <strong>Claude Autofix</strong>  (from H6)
+             GitHub Connector: select  <strong>GitHub Todo Demo</strong>  (from H4)
+          5. Click  <strong>Install Agent</strong>
+          6. Wait for the status to show:  <span class="ok">Installed</span>
+
+          That's it — the Agent is now active in your project.
+        </div>
+      </div>
+    </div>
+
+    <!-- H9 -->
+    <div class="step c-blue">
+      <div class="step-hd" onclick="toggle(this)">
+        <div class="step-num">H9</div>
+        <div class="step-info">
+          <div class="step-title">Set up the GitHub webhook trigger</div>
+          <div class="step-sub">Makes the pipeline run automatically on every git push</div>
+        </div>
+        <div class="step-chevron">▶</div>
+      </div>
+      <div class="step-body">
+        <div class="meta">
+          <div class="meta-card what"><div class="meta-lbl">What you're doing</div><div class="meta-txt">Connecting GitHub to Harness so every <code>git push</code> automatically triggers the pipeline — no manual "Run" button needed</div></div>
+          <div class="meta-card why"><div class="meta-lbl">Why</div><div class="meta-txt">The demo's "wow moment" is that <em>you do nothing after the push</em>. The webhook is what makes that happen — GitHub pings Harness the instant you push, Harness starts the pipeline, the Agent kicks in</div></div>
+          <div class="meta-card ach"><div class="meta-lbl">What you achieve</div><div class="meta-txt">Every <code>git push</code> to main automatically triggers the full pipeline. The demo flow becomes: push → wait → watch the agent fix it</div></div>
+        </div>
+        <div class="out-box og">
+          <div class="out-lbl">step by step — two parts</div>
+          <strong>Part A — Get the Harness webhook URL:</strong>
+          1. Harness → your pipeline → click  <strong>Triggers</strong>  tab
+          2. Click  <strong>+ New Trigger</strong>
+          3. Select  <strong>GitHub</strong>
+          4. Event:  <strong>Push</strong>   Branch:  <strong>main</strong>
+          5. Click  <strong>Create Trigger</strong>
+          6. Copy the  <strong>Webhook URL</strong>  shown — looks like:
+             https://app.harness.io/gateway/ng/api/webhook?...
+
+          <strong>Part B — Add webhook in GitHub:</strong>
+          1. github.com → your repo → <strong>Settings</strong> → <strong>Webhooks</strong>
+          2. Click  <strong>Add webhook</strong>
+          3. Payload URL:  paste the Harness webhook URL from above
+          4. Content type:  <strong>application/json</strong>
+          5. Events:  <strong>Just the push event</strong>
+          6. Click  <strong>Add webhook</strong>
+          7. GitHub shows a green tick → webhook is active
+        </div>
+      </div>
+    </div>
+
+    <!-- H10 -->
+    <div class="step c-green">
+      <div class="step-hd" onclick="toggle(this)">
+        <div class="step-num">H10</div>
+        <div class="step-info">
+          <div class="step-title">Push broken code — watch the Agent fix it live</div>
+          <div class="step-sub">The full automated demo — you push, the Agent does the rest</div>
+        </div>
+        <div class="step-chevron">▶</div>
+      </div>
+      <div class="step-body">
+        <div class="meta">
+          <div class="meta-card what"><div class="meta-lbl">What you're doing</div><div class="meta-txt">Pushing the broken version of <code>todo.py</code> to GitHub and watching Harness handle everything automatically</div></div>
+          <div class="meta-card why"><div class="meta-lbl">Why</div><div class="meta-txt">This is the complete end-to-end demo — the audience sees the pipeline fail, the Agent activate, the fix commit appear, and the pipeline go green — all without you writing a single line of code</div></div>
+          <div class="meta-card ach"><div class="meta-lbl">What you achieve</div><div class="meta-txt">A live demonstration of autonomous AI-driven CI/CD. The Agent detected, diagnosed, fixed, and verified a bug — fully automatically</div></div>
+        </div>
+        <div class="cb">
+          <div class="cb-bar">
+            <div class="dots"><div class="dot dr"></div><div class="dot dy"></div><div class="dot dg"></div></div>
+            <span class="cb-lbl">terminal — push the bug</span>
+          </div>
+          <div class="cb-code"><span class="pr">$ </span>cp todo_BROKEN_for_demo.py todo.py
+<span class="pr">$ </span>git add todo.py
+<span class="pr">$ </span>git commit -m "demo: introduce case-corruption bug"
+<span class="pr">$ </span>git push</div>
+        </div>
+        <div class="out-box op">
+          <div class="out-lbl">what to watch in Harness UI — open the pipeline execution</div>
+          <span class="dim">~0:10</span>  Install step  → <span class="ok">PASSED</span>
+          <span class="dim">~0:25</span>  Test step     → <span class="err">FAILED</span>  (test_add_item_preserves_case)
+          <span class="dim">~0:30</span>  Autofix Agent → <span class="ok">RUNNING</span> ...reading error output...
+          <span class="dim">~0:50</span>  Agent commits fix → check your GitHub repo:
+                  new commit appears: "fix: remove .upper() from add_item"
+          <span class="dim">~1:00</span>  Pipeline re-triggers automatically
+          <span class="dim">~1:30</span>  Install → <span class="ok">PASSED</span>  |  Test → <span class="ok">7 passed</span>  |  Pipeline → <span class="ok">GREEN</span>
+
+          You never touched the code. The Agent did it all.
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /harness steps -->
+
+  <!-- TWO APPROACHES -->
+  <div class="sec-head" id="approaches">
+    <div class="sec-eye">understanding your options</div>
+    <h2>Two approaches — which one are you using?</h2>
+  </div>
+  <p style="font-size:.9rem;color:var(--muted);margin-bottom:1.5rem;line-height:1.7;">
+    There are two ways to run this demo. The concept is identical in both — AI reads the test failure, fixes the code, commits it. The difference is <em>who runs the pipeline</em> and <em>who provides the agent.</em>
+  </p>
+
+  <div class="compare" style="margin-bottom:1.5rem">
+    <div class="cmp bad" style="border-top-color:var(--purple)">
+      <div class="cmp-title" style="color:var(--purple)">⚙ Approach A — Harness Platform</div>
+      <ul>
+        <li><span class="ic">→</span> Pipeline runs on <strong>Harness CI</strong></li>
+        <li><span class="ic">→</span> Agent is the <strong>Harness Autofix Agent</strong> (prebuilt, from Marketplace)</li>
+        <li><span class="ic">→</span> Your file: <code>.harness/pipeline.yaml</code></li>
+        <li><span class="ic">→</span> Requires a Harness account + 5 secrets</li>
+        <li><span class="ic">→</span> This is the <strong>official Harness demo</strong></li>
+      </ul>
+    </div>
+    <div class="cmp good" style="border-top-color:var(--blue)">
+      <div class="cmp-title" style="color:var(--blue)">⚙ Approach B — GitHub Actions + OpenAI</div>
+      <ul>
+        <li><span class="ic">→</span> Pipeline runs on <strong>GitHub Actions</strong></li>
+        <li><span class="ic">→</span> Agent is <strong>your own</strong> <code>autofix.py</code> script</li>
+        <li><span class="ic">→</span> Your file: <code>.github/workflows/ci.yml</code></li>
+        <li><span class="ic">→</span> Requires only 1 secret (OpenAI API key)</li>
+        <li><span class="ic">→</span> This is a <strong>custom / DIY version</strong> of the same concept</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- What is "custom Harness" -->
+  <div class="cb" style="margin-bottom:1.5rem">
+    <div class="cb-bar">
+      <div class="dots"><div class="dot dr"></div><div class="dot dy"></div><div class="dot dg"></div></div>
+      <span class="cb-lbl">is Approach B "custom Harness"?</span>
+    </div>
+    <div class="cb-code">Yes — Approach B is a DIY version of what Harness's Autofix Agent does.
+
+The concept is the same:
+  <span class="ok">AI reads test failure → identifies bug → writes fix → commits → pipeline goes green</span>
+
+The difference is who built the agent:
+  Approach A:  Harness built it  → you install it from their Marketplace
+  Approach B:  You built it      → autofix.py is your own agent
+
+If you are demoing this AS a Harness product:   use Approach A (.harness/pipeline.yaml)
+If you just want to prove the concept cheaply:   use Approach B (ci.yml + autofix.py)</div>
+  </div>
+
+  <!-- File roles explained -->
+  <div class="sec-head" style="margin-top:2rem">
+    <div class="sec-eye">file roles explained</div>
+    <h2>What each file does in each approach</h2>
+  </div>
+
+  <div class="cb" style="margin-bottom:2rem">
+    <div class="cb-bar">
+      <div class="dots"><div class="dot dr"></div><div class="dot dy"></div><div class="dot dg"></div></div>
+      <span class="cb-lbl">approach A — harness</span>
+    </div>
+    <div class="cb-code"><span class="ok">.harness/pipeline.yaml</span>   ← THE PIPELINE
+                              Defines the steps and order:
+                              Install → Test → Autofix Agent
+                              Runs on Harness CI infrastructure.
+
+<span class="ok">Harness Autofix Agent</span>     ← THE AGENT BRAIN
+                              A prebuilt agent installed from the Harness Marketplace.
+                              You do not write this — Harness provides it.
+                              It reads pytest output, calls Claude/OpenAI, commits the fix.</div>
+  </div>
+
+  <div class="cb" style="margin-bottom:2rem">
+    <div class="cb-bar">
+      <div class="dots"><div class="dot dr"></div><div class="dot dy"></div><div class="dot dg"></div></div>
+      <span class="cb-lbl">approach B — github actions + openai (your own)</span>
+    </div>
+    <div class="cb-code"><span class="ok">.github/workflows/ci.yml</span>  ← THE PIPELINE
+                               Defines the same steps:
+                               Install → Test → autofix.py → commit fix
+                               Runs on GitHub Actions (free, no account needed).
+                               This is the equivalent of .harness/pipeline.yaml.
+
+<span class="ok">autofix.py</span>                 ← THE AGENT BRAIN (your own)
+                               A Python script YOU wrote.
+                               It reads test_output.txt (pytest failure),
+                               sends it to OpenAI GPT-4o,
+                               receives the fixed code,
+                               writes it back to todo.py.
+                               This is the equivalent of the Harness Autofix Agent.</div>
+  </div>
+
+  <div class="out-box og" style="margin-bottom:2.5rem">
+    <div class="out-lbl">one-line summary</div>
+    <strong style="color:var(--bright)">ci.yml</strong> = the orchestrator &nbsp;·&nbsp; <strong style="color:var(--bright)">autofix.py</strong> = the worker it calls
+    <br><br>
+    Together they do exactly what Harness CI + the Harness Autofix Agent do —
+    just without the Harness platform in the middle.
+  </div>
+
+  <!-- TWO WORKFLOWS -->
+  <div class="sec-head" id="workflows">
+    <div class="sec-eye">github actions — single workflow</div>
+    <h2>autofix.yml — one file, does everything</h2>
+  </div>
+  <p style="font-size:.9rem;color:var(--muted);margin-bottom:1.5rem;line-height:1.7;">
+    After testing different approaches, the final solution is a single <code>autofix.yml</code> that handles the full flow: run tests → detect failure → call OpenAI → commit fix — all in one workflow triggered by every push.
+  </p>
+
+  <!-- What the file does -->
+  <div class="cb" style="margin-bottom:1.5rem">
+    <div class="cb-bar">
+      <div class="dots"><div class="dot dr"></div><div class="dot dy"></div><div class="dot dg"></div></div>
+      <span class="cb-lbl">.github/workflows/autofix.yml — full breakdown</span>
+    </div>
+    <div class="cb-code">Triggers on:  every  <span class="ok">git push</span>  to main
+
+Steps:
+  1. Checkout  <span class="ok">ref: main</span>  with GITHUB_TOKEN
+        ↑ checks out the branch, not a commit SHA — critical for the push to work
+
+  2. Set up Python 3.12 + pip install -r requirements.txt
+
+  3. Run tests  <span class="dim">(id: run_tests, continue-on-error: true)</span>
+        set -o pipefail
+        pytest test_todo.py -v --tb=short 2>&1 | tee test_output.txt
+        ↑ pipefail captures pytest exit code  |  tee shows live output AND saves to file
+
+  4. AI Autofix  <span class="dim">(only if: steps.run_tests.outcome == 'failure')</span>
+        python3 autofix.py
+        → reads test_output.txt + todo.py
+        → sends both to OpenAI GPT-4o
+        → receives fixed code → writes to todo.py
+
+  5. Commit and push fix  <span class="dim">(only if: steps.run_tests.outcome == 'failure')</span>
+        git push <span class="ok">origin main</span>
+        → triggers autofix.yml again → this time tests pass → done</div>
+  </div>
+
+  <!-- Full flow -->
+  <div class="sec-head" style="margin-top:2rem;margin-bottom:1rem;border-bottom:1px solid var(--border)">
+    <div class="sec-eye">end to end</div>
+    <h2 style="font-size:1.1rem">Complete flow — what happens after you push broken code</h2>
+  </div>
+  <div class="cb" style="margin-bottom:1.5rem">
+    <div class="cb-bar">
+      <div class="dots"><div class="dot dr"></div><div class="dot dy"></div><div class="dot dg"></div></div>
+      <span class="cb-lbl">timeline</span>
+    </div>
+    <div class="cb-code"><span class="ok">You:</span>  git push  <span class="dim">(broken code — .upper() bug in todo.py)</span>
+       ↓
+<span class="err">autofix.yml (Run 1) triggers</span>
+  Install     → pass
+  Tests       → <span class="err">FAIL</span>  test_add_item_preserves_case
+  AI Autofix  → reads error, calls OpenAI, writes fix to todo.py
+  Commit+push → "fix: AI autofix — bug detected and removed automatically"
+  Run ends:     <span class="err">❌ FAILED</span>  <span class="dim">(tests failed — that is expected for this run)</span>
+       ↓
+<span class="ok">autofix.yml (Run 2) triggers</span>  <span class="dim">(from bot's fix commit)</span>
+  Install     → pass
+  Tests       → <span class="ok">7 passed</span>
+  AI Autofix  → skipped  <span class="dim">(tests passed, nothing to fix)</span>
+  Commit+push → skipped
+  Run ends:     <span class="ok">✅ PASSED</span>
+
+<span class="dim">You did nothing after the first push. The agent handled everything.</span></div>
+  </div>
+
+  <!-- Actions tab -->
+  <div class="cb" style="margin-bottom:1.5rem">
+    <div class="cb-bar">
+      <div class="dots"><div class="dot dr"></div><div class="dot dy"></div><div class="dot dg"></div></div>
+      <span class="cb-lbl">Actions tab — what you will see</span>
+    </div>
+    <div class="cb-code"><span class="dim">Workflow        Triggered by              Result</span>
+<span class="dim">──────────────  ────────────────────────  ─────────────────────────────────</span>
+CI + AI Autofix  your push (broken code)  <span class="err">❌ Failed</span>   bug detected, fix committed
+CI + AI Autofix  bot's fix commit         <span class="ok">✅ Passed</span>   all 7 tests green</div>
+  </div>
+
+  <!-- Errors encountered and fixed -->
+  <div class="sec-head" style="margin-top:2rem;margin-bottom:1rem;border-bottom:1px solid var(--border)">
+    <div class="sec-eye">errors encountered along the way — and how they were fixed</div>
+    <h2 style="font-size:1.1rem">Lessons learned building this workflow</h2>
+  </div>
+
+  <div class="cb" style="margin-bottom:1rem">
+    <div class="cb-bar">
+      <div class="dots"><div class="dot dr"></div><div class="dot dy"></div><div class="dot dg"></div></div>
+      <span class="cb-lbl">error 1 — AI Autofix step was always skipped</span>
+    </div>
+    <div class="cb-code"><span class="err">Problem:</span>  pytest test_todo.py | tee test_output.txt
+          The pipe exit code comes from tee (always 0), not pytest.
+          So GitHub Actions thought tests passed even when they failed.
+          run_tests.outcome was always 'success' → AI Autofix never triggered.
+
+<span class="ok">Fix:</span>      shell: bash
+          set -o pipefail
+          pytest test_todo.py -v --tb=short 2>&1 | tee test_output.txt
+          pipefail makes the pipe use pytest's exit code, not tee's.</div>
+  </div>
+
+  <div class="cb" style="margin-bottom:1rem">
+    <div class="cb-bar">
+      <div class="dots"><div class="dot dr"></div><div class="dot dy"></div><div class="dot dg"></div></div>
+      <span class="cb-lbl">error 2 — push rejected "remote contains work you do not have"</span>
+    </div>
+    <div class="cb-code"><span class="err">Problem:</span>  checkout ref: github.event.workflow_run.head_sha
+          Checking out a commit SHA puts git in "detached HEAD" mode.
+          You are not on any branch — git does not know where to push.
+          git push HEAD:main → rejected because remote has moved ahead.
+
+<span class="ok">Fix:</span>      checkout ref: main
+          Checks out the actual branch. You are ON main.
+          git push origin main → clean push, no rejection.</div>
+  </div>
+
+  <div class="cb" style="margin-bottom:2rem">
+    <div class="cb-bar">
+      <div class="dots"><div class="dot dr"></div><div class="dot dy"></div><div class="dot dg"></div></div>
+      <span class="cb-lbl">error 3 — test output not visible in Actions log</span>
+    </div>
+    <div class="cb-code"><span class="err">Problem:</span>  pytest > test_output.txt 2>&1
+          cat test_output.txt
+          cat always exits 0 → step outcome was always 'success'.
+          Also output was buffered, not visible until after the step ended.
+
+<span class="ok">Fix:</span>      pipefail + tee streams output live to the Actions log
+          AND saves to test_output.txt at the same time.
+          Exit code comes from pytest, not tee or cat.</div>
+  </div>
+
+  <!-- GITHUB SECRETS -->
+  <div class="sec-head" id="secrets">
+    <div class="sec-eye">github actions — required secrets</div>
+    <h2>Where to get your 5 secrets</h2>
+  </div>
+  <p style="font-size:.9rem;color:var(--muted);margin-bottom:1.5rem;line-height:1.7;">
+    The GitHub Actions workflow needs 5 secrets to call the Harness API. Add each one at:<br>
+    Your GitHub repo → <strong style="color:var(--bright)">Settings</strong> → <strong style="color:var(--bright)">Secrets and variables</strong> → <strong style="color:var(--bright)">Actions</strong> → <strong style="color:var(--bright)">New repository secret</strong>
+  </p>
+
+  <div class="steps">
+
+    <!-- SECRET 1 -->
+    <div class="step c-purple">
+      <div class="step-hd" onclick="toggle(this)">
+        <div class="step-num">S1</div>
+        <div class="step-info">
+          <div class="step-title"><code style="font-size:.85rem">HARNESS_API_KEY</code></div>
+          <div class="step-sub">Your personal Harness API token — authenticates every API call</div>
+        </div>
+        <div class="step-chevron">▶</div>
+      </div>
+      <div class="step-body">
+        <div class="out-box op">
+          <div class="out-lbl">where to get it — step by step</div>
+          1. Log in to  <strong>app.harness.io</strong>
+          2. Click your  <strong>avatar / initials</strong>  in the top-right corner
+          3. Click  <strong>My Profile</strong>
+          4. Scroll down to  <strong>My API Keys</strong>
+          5. Click  <strong>+ API Key</strong>
+             Name: <strong>github-actions-key</strong>
+          6. Click  <strong>Save</strong>
+          7. Now click  <strong>+ Token</strong>  under that API Key
+             Name: <strong>gh-actions-token</strong>
+             Expiry: set to 90 days or no expiry
+          8. Click  <strong>Generate Token</strong>
+          9. <span class="err">COPY IT NOW</span> — shown only once
+             Looks like:  pat.xxxxxxxxxxxxxxxxxxxx
+
+          → Paste this as secret value for  <span class="ok">HARNESS_API_KEY</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- SECRET 2 -->
+    <div class="step c-blue">
+      <div class="step-hd" onclick="toggle(this)">
+        <div class="step-num">S2</div>
+        <div class="step-info">
+          <div class="step-title"><code style="font-size:.85rem">HARNESS_ACCOUNT_ID</code></div>
+          <div class="step-sub">Your Harness account identifier — found in the browser URL</div>
+        </div>
+        <div class="step-chevron">▶</div>
+      </div>
+      <div class="step-body">
+        <div class="out-box og">
+          <div class="out-lbl">where to find it</div>
+          1. Log in to  <strong>app.harness.io</strong>
+          2. Look at your browser URL bar. It looks like:
+
+             https://app.harness.io/ng/account/<span class="ok">abc123XYZ</span>/home/get-started
+                                                        ^^^^^^^^^^^
+                                                        THIS is your Account ID
+
+          3. Copy everything between  <strong>/account/</strong>  and the next  <strong>/</strong>
+
+          → Paste this as secret value for  <span class="ok">HARNESS_ACCOUNT_ID</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- SECRET 3 -->
+    <div class="step c-blue">
+      <div class="step-hd" onclick="toggle(this)">
+        <div class="step-num">S3</div>
+        <div class="step-info">
+          <div class="step-title"><code style="font-size:.85rem">HARNESS_ORG_ID</code></div>
+          <div class="step-sub">Your Harness organisation identifier — also in the URL</div>
+        </div>
+        <div class="step-chevron">▶</div>
+      </div>
+      <div class="step-body">
+        <div class="out-box og">
+          <div class="out-lbl">where to find it</div>
+          1. In Harness, navigate to your  <strong>Project</strong>  (todo-agent-demo)
+          2. Look at your browser URL bar. It looks like:
+
+             https://app.harness.io/ng/account/abc123/orgs/<span class="ok">default</span>/projects/...
+                                                                 ^^^^^^^
+                                                                 THIS is your Org ID
+
+          3. For most free accounts this is simply:  <span class="ok">default</span>
+             If you created a custom org during signup, use that name instead.
+
+          → Paste this as secret value for  <span class="ok">HARNESS_ORG_ID</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- SECRET 4 -->
+    <div class="step c-blue">
+      <div class="step-hd" onclick="toggle(this)">
+        <div class="step-num">S4</div>
+        <div class="step-info">
+          <div class="step-title"><code style="font-size:.85rem">HARNESS_PROJECT_ID</code></div>
+          <div class="step-sub">The identifier of the project that contains your pipeline</div>
+        </div>
+        <div class="step-chevron">▶</div>
+      </div>
+      <div class="step-body">
+        <div class="out-box og">
+          <div class="out-lbl">where to find it</div>
+          1. In Harness, navigate to your  <strong>Project</strong>  (todo-agent-demo)
+          2. Look at your browser URL bar. It looks like:
+
+             https://app.harness.io/ng/account/abc123/orgs/default/projects/<span class="ok">todo_agent_demo</span>/...
+                                                                                  ^^^^^^^^^^^^^^^
+                                                                                  THIS is your Project ID
+
+          3. Note: spaces in project names are replaced with underscores in the ID.
+             "Todo Agent Demo" → todo_agent_demo
+
+          Alternative method:
+          1. Harness → <strong>Project Settings</strong> → <strong>Overview</strong>
+          2. The  <strong>Identifier</strong>  field shows the Project ID
+
+          → Paste this as secret value for  <span class="ok">HARNESS_PROJECT_ID</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- SECRET 5 -->
+    <div class="step c-amber">
+      <div class="step-hd" onclick="toggle(this)">
+        <div class="step-num">S5</div>
+        <div class="step-info">
+          <div class="step-title"><code style="font-size:.85rem">HARNESS_PIPELINE_ID</code></div>
+          <div class="step-sub">The identifier of your specific pipeline inside the project</div>
+        </div>
+        <div class="step-chevron">▶</div>
+      </div>
+      <div class="step-body">
+        <div class="out-box og">
+          <div class="out-lbl">where to find it</div>
+          1. Harness → left sidebar → <strong>Pipelines</strong>
+          2. Click on your pipeline  <strong>todo-agent-demo</strong>
+          3. Click the  <strong>pencil / edit</strong>  icon next to the pipeline name
+
+          Method A — from the URL:
+             https://app.harness.io/.../pipelines/<span class="ok">todo_agent_demo</span>/pipeline-studio
+                                                        ^^^^^^^^^^^^^^^
+                                                        THIS is your Pipeline ID
+
+          Method B — from the YAML editor:
+          1. Inside the pipeline, click  <strong>YAML</strong>  tab (top right)
+          2. Look at the top of the YAML for:
+             identifier: <span class="ok">todo_agent_demo</span>
+
+          → Paste this as secret value for  <span class="ok">HARNESS_PIPELINE_ID</span>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /secrets steps -->
+
+  <!-- QUICK REFERENCE -->
+  <div class="cb" style="margin:2rem 0">
+    <div class="cb-bar">
+      <div class="dots"><div class="dot dr"></div><div class="dot dy"></div><div class="dot dg"></div></div>
+      <span class="cb-lbl">quick reference — all 5 secrets at a glance</span>
+    </div>
+    <div class="cb-code"><span class="dim">Secret name              Where to find it</span>
+<span class="dim">──────────────────────   ──────────────────────────────────────────────────</span>
+<span class="ok">HARNESS_API_KEY</span>          Harness → avatar → My Profile → API Keys → + Token
+<span class="ok">HARNESS_ACCOUNT_ID</span>       Browser URL → /account/<span class="err">THIS_PART</span>/
+<span class="ok">HARNESS_ORG_ID</span>           Browser URL → /orgs/<span class="err">THIS_PART</span>/  (usually "default")
+<span class="ok">HARNESS_PROJECT_ID</span>       Browser URL → /projects/<span class="err">THIS_PART</span>/  or Pipeline YAML → identifier:
+<span class="ok">HARNESS_PIPELINE_ID</span>      Harness → Pipelines → your pipeline → YAML tab → identifier:
+
+<span class="dim">Add all 5 at:  GitHub repo → Settings → Secrets and variables → Actions → New repository secret</span></div>
+  </div>
+
+  <!-- TROUBLESHOOTING -->
+  <div class="sec-head" id="trouble">
+    <div class="sec-eye">if something goes wrong</div>
+    <h2>Troubleshooting</h2>
+  </div>
+  <div class="trbl-list">
+    <div class="trbl">
+      <div class="trbl-q">Command not found: python3</div>
+      <div class="trbl-a">Run <code>sudo apt install python3</code> — but this is already installed on Kali by default. Try <code>which python3</code> to confirm.</div>
+    </div>
+    <div class="trbl">
+      <div class="trbl-q">pip install fails with "externally managed environment"</div>
+      <div class="trbl-a">This means you skipped step 03. You must create the virtual environment first with <code>python3 -m venv .venv</code> and then use <code>.venv/bin/pip</code>, not the system <code>pip</code>.</div>
+    </div>
+    <div class="trbl">
+      <div class="trbl-q">.venv/bin/pytest: No such file or directory</div>
+      <div class="trbl-a">pytest wasn't installed. Run step 04 again: <code>.venv/bin/pip install -r requirements.txt</code></div>
+    </div>
+    <div class="trbl">
+      <div class="trbl-q">Tests all pass even after copying the broken file</div>
+      <div class="trbl-a">The copy may not have worked. Confirm with <code>grep upper todo.py</code> — if you see <code>.upper()</code> on line 9, the broken version is active. If not, run the <code>cp</code> command from step 06 again from inside the project folder.</div>
+    </div>
+    <div class="trbl">
+      <div class="trbl-q">sed command doesn't fix the file</div>
+      <div class="trbl-a">Make sure you are inside the project folder when you run it. Run <code>pwd</code> — the output should end in <code>Demo 1</code>. Also verify the broken file is active: <code>grep upper todo.py</code>.</div>
+    </div>
+    <div class="trbl">
+      <div class="trbl-q">Want to reset and run the whole demo from scratch</div>
+      <div class="trbl-a">Run: <code>cp todo_BROKEN_for_demo.py todo.py</code> to re-introduce the bug, or <code>sed -i 's/text.strip().upper()/text.strip()/' todo.py</code> to fix it again. The <code>.venv</code> only needs to be created once.</div>
+    </div>
+  </div>
+
+</div><!-- /content -->
+
+<footer>
+  <span>Harness Autofix Agent Demo — Local Runbook</span>
+  <span>Demo 1 · Accenture · 2026</span>
+</footer>
+
+<script>
+  // ── Step toggle ──
+  function toggle(hd) {
+    const body = hd.nextElementSibling;
+    const chev = hd.querySelector('.step-chevron');
+    const isOpen = body.classList.contains('open');
+    body.classList.toggle('open', !isOpen);
+    chev.classList.toggle('open', !isOpen);
+  }
+
+  // ── Copy button ──
+  function copy(btn, text) {
+    navigator.clipboard.writeText(text).then(() => {
+      btn.textContent = 'copied!';
+      btn.classList.add('ok');
+      setTimeout(() => { btn.textContent = 'copy'; btn.classList.remove('ok'); }, 1800);
+    });
+  }
+
+  // ── Pipeline widget ──
+  const nodes = { I: 'pI', T: 'pT', A: 'pA', D: 'pD' };
+  const arrows = { a1:'a1', a2:'a2', a3:'a3' };
+  const STATUS = {
+    idle:   'select a scene to rehearse',
+    green:  '✓ 7/7 tests passed — pipeline green',
+    broken: '✓ agent detected bug, applied fix, pipeline green'
+  };
+
+  function clearAll() {
+    ['pI','pT','pA','pD'].forEach(id => {
+      document.getElementById(id).className = 'p-box';
+    });
+    ['a1','a2','a3'].forEach(id => {
+      document.getElementById(id).className = 'p-arrow';
+    });
+    ['b0','b1','b2'].forEach(id => document.getElementById(id).classList.remove('on'));
+  }
+
+  function setPipeline(state) {
+    clearAll();
+    const I = document.getElementById('pI');
+    const T = document.getElementById('pT');
+    const A = document.getElementById('pA');
+    const D = document.getElementById('pD');
+    const a1 = document.getElementById('a1');
+    const a2 = document.getElementById('a2');
+    const a3 = document.getElementById('a3');
+    const st = document.getElementById('pSt');
+
+    if (state === 'green') {
+      I.className = 'p-box s-done'; I.textContent = '✓ INSTALL';
+      T.className = 'p-box s-done'; T.textContent = '✓ TEST';
+      A.className = 'p-box s-skip'; A.textContent = 'AGENT';
+      D.className = 'p-box s-done'; D.textContent = '✓ PASS';
+      a1.className = 'p-arrow arr-done';
+      a2.className = 'p-arrow arr-done';
+      a3.className = 'p-arrow arr-done';
+      document.getElementById('b1').classList.add('on');
+      st.textContent = STATUS.green;
+    } else if (state === 'broken') {
+      I.className = 'p-box s-done'; I.textContent = '✓ INSTALL';
+      T.className = 'p-box s-fail'; T.textContent = '✗ TEST';
+      A.className = 'p-box s-agent'; A.textContent = '⟳ AGENT';
+      D.className = 'p-box s-done'; D.textContent = '✓ FIXED';
+      a1.className = 'p-arrow arr-done';
+      a2.className = 'p-arrow arr-fail';
+      a3.className = 'p-arrow arr-purple';
+      document.getElementById('b2').classList.add('on');
+      st.textContent = STATUS.broken;
+    } else {
+      I.textContent = 'INSTALL'; T.textContent = 'TEST';
+      A.textContent = 'AGENT'; D.textContent = 'RESULT';
+      document.getElementById('b0').classList.add('on');
+      st.textContent = STATUS.idle;
+    }
+  }
+</script>
+</body>
+</html>

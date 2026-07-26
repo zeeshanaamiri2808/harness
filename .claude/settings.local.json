@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python3 -m venv .venv)",
+      "Bash(.venv/bin/pip install *)",
+      "Bash(.venv/bin/pytest test_todo.py -v)",
+      "Bash(cp todo_BROKEN_for_demo.py todo_test_broken.py)",
+      "Bash(PYTHONPATH=. .venv/bin/pytest test_todo.py -v --import-mode=importlib)",
+      "Bash(rm todo_test_broken.py)",
+      "Bash(cp todo_BROKEN_for_demo.py todo.py)",
+      "Bash(git checkout *)"
+    ]
+  }
+}

@@ -1,0 +1,83 @@
+pipeline:
+  name: todo-agent-demo
+  identifier: todo_agent_demo
+  projectIdentifier: <YOUR_PROJECT_ID>
+  orgIdentifier: <YOUR_ORG_ID>
+  tags: {}
+
+  properties:
+    ci:
+      codebase:
+        connectorRef: <YOUR_GITHUB_CONNECTOR_ID>
+        repoName: <YOUR_REPO_NAME>
+        build:
+          type: branch
+          spec:
+            branch: main
+
+  stages:
+    - stage:
+        name: Build and Test
+        identifier: build_and_test
+        type: CI
+        spec:
+          cloneCodebase: true
+
+          infrastructure:
+            type: Cloud
+            spec:
+              platform:
+                os: Linux
+                arch: Amd64
+              runtime:
+                type: Cloud
+                spec: {}
+
+          execution:
+            steps:
+
+              # ── Step 1: Install dependencies ──────────────────────────────
+              - step:
+                  name: Install Dependencies
+                  identifier: install_deps
+                  type: Run
+                  spec:
+                    shell: Sh
+                    command: pip install -r requirements.txt
+
+              # ── Step 2: Run tests (may fail on broken code) ───────────────
+              - step:
+                  name: Run Tests
+                  identifier: run_tests
+                  type: Run
+                  spec:
+                    shell: Sh
+                    command: pytest test_todo.py -v --tb=short
+                  failureStrategies:
+                    - onFailure:
+                        errors:
+                          - AllErrors
+                        action:
+                          type: Ignore   # let the pipeline continue to the Agent step
+
+              # ── Step 3: Autofix Worker Agent ───────────────────────────────
+              #    This step only does real work when the tests above failed.
+              #    The agent reads the pytest output, identifies the bug,
+              #    commits a fix to the branch, and re-triggers the pipeline.
+              - step:
+                  name: Autofix Agent
+                  identifier: autofix_agent
+                  type: Action
+                  spec:
+                    uses: harness/autofix@v1
+                    with:
+                      # Connector to the LLM (Claude / OpenAI / Gemini)
+                      llm_connector: <YOUR_LLM_CONNECTOR_ID>
+                      # GitHub connector so the agent can push the fix commit
+                      github_connector: <YOUR_GITHUB_CONNECTOR_ID>
+                      repo: <YOUR_GITHUB_ORG>/<YOUR_REPO_NAME>
+                      branch: main
+                      # Which test command to re-run after the fix
+                      test_command: "pytest test_todo.py -v --tb=short"
+                      # Maximum attempts before the agent gives up
+                      max_retries: 3
